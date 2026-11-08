@@ -11,6 +11,7 @@ Het P1-shield gebruikt de **LOLIN/Wemos D1 mini shield-layout**. Boards met die 
 
 Alleen de C3 mini is met de huidige configuratie direct bedoeld. Stel voor een ander ESP32-board `esp32.board` in op het juiste model en controleer of de shield-aansluitingen overeenkomen met de ingestelde UART-pinnen (`GPIO20` RX en `GPIO21` TX); pas zo nodig de `uart:`-sectie aan. Heeft het board geen WS2812B-led op GPIO8, verwijder dan in `makkis-sms.yaml` de volledige `light:`-sectie én de LED-aansturing (`on_value`-acties) bij `power_delivered` en `power_returned`; die acties verwijzen naar de LED en veroorzaken anders een configuratiefout.
 
+
 ## 📋 Inhoudsopgave
 
 * [🚀 Belangrijke Features](#-belangrijke-features)
@@ -31,9 +32,21 @@ Alleen de C3 mini is met de huidige configuratie direct bedoeld. Stel voor een a
 * **Lokale Webinterface (Versie 3)**: Volledig inzicht in alle meetwaarden, systeemstatus, IP-adres, Wi-Fi signaalsterkte, Uptime en ESPHome-versie. De status-LED is via de webserver ook handmatig te dimmen of uit te schakelen.
 * **OTA (Over-The-Air) Updates**: Eenvoudig draadloos bij te werken na de eerste USB-flash.
 
+### Voorbeeld van de webinterface
+
+<p align="center">
+  <img src="webinterface-crop.png" alt="Voorbeeld van de ESPHome-webinterface met P1-meetwaarden en de status-led" width="560" style="max-width: 100%; height: auto;">
+</p>
+<p align="center"><em>Voorbeeldweergave van de lokale ESPHome-webinterface.</em></p>
+
 ## 🛠️ Hardware & Pinout
 
 ### Hardware
+
+<p align="center">
+  <img src="pcb-lolinc3.png" alt="Makki's SMS P1-shield en LOLIN C3 mini naast elkaar" width="560" style="max-width: 100%; height: auto;">
+</p>
+<p align="center"><em>Makki's SMS P1-shield naast de LOLIN C3 mini.</em></p>
 
 De opstelling bestaat uit een **Lolin ESP32-C3 Mini** en het **Makki's SMS v1 P1-shield**. De P1-poort van de slimme meter levert seriële telegrammen; het shield verzorgt de signaalbewerking/inversie voor de UART-ingang van de ESP32. De ESP32 leest de telegrammen uit en publiceert de meetwaarden via ESPHome. De onboard WS2812B-led is aangesloten op GPIO8.
 
@@ -79,3 +92,7 @@ De onboard WS2812B RGB-LED op GPIO8 geeft direct visuele feedback:
 
 * 📖 [**hardware.md**](hardware.md) — Bevat het uitgebreide onderdelenoverzicht (BOM met 1K/10K weerstanden), de stapsgewijze soldeerdocumentatie en het volledige **Mermaid-architectuurdiagram**.
 * 📝 [**changelog.md**](changelog.md) — Bekijk alle releasedetails, versie-historie en toegevoegde functionaliteiten per versie.
+
+## Licentie
+
+Dit project is beschikbaar onder de **GNU General Public License v3.0**. Zie [LICENSE](LICENSE) voor de volledige licentievoorwaarden.
