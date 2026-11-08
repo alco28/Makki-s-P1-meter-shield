@@ -2,6 +2,15 @@
 
 Een robuuste en zelfvoorzienende ESPHome-firmware voor de **Lolin ESP32-C3 Mini** in combinatie met het **Makki P1-shield (SMS v1)** om een **Landis+Gyr E360** (of vergelijkbare DSMR 5.0+) slimme meter uit te lezen.
 
+Het P1-shield gebruikt de **LOLIN/Wemos D1 mini shield-layout**. Boards met die layout passen op dezelfde headers, maar zijn niet allemaal zonder firmwareaanpassingen uitwisselbaar:
+
+* **[LOLIN C3 mini](https://docs.wemos.cc/en/latest/c3/c3_mini.html)** — aanbevolen; past op D1 mini-shields en is het board waarop deze configuratie is gebaseerd.
+* **[LOLIN S2 mini](https://docs.wemos.cc/en/latest/s2/s2_mini.html)** — past ook op D1 mini-shields, maar vereist controle en mogelijk aanpassing van de UART-pinnen en LED-configuratie.
+* **[LOLIN D1 mini](https://docs.wemos.cc/en/latest/d1/d1_mini.html)** en **[D1 mini Lite](https://docs.wemos.cc/en/latest/d1/d1_mini_lite.html)** — hebben de D1 mini-vormfactor, maar zijn ESP8266/ESP8285-boards. Deze ESP32-firmware werkt er niet ongewijzigd op.
+* **D1 mini Pro** — geen directe vervanger: de print is langer dan de standaard D1 mini-layout.
+
+Alleen de C3 mini is met de huidige configuratie direct bedoeld. Stel voor een ander ESP32-board `esp32.board` in op het juiste model en controleer of de shield-aansluitingen overeenkomen met de ingestelde UART-pinnen (`GPIO20` RX en `GPIO21` TX); pas zo nodig de `uart:`-sectie aan. Heeft het board geen WS2812B-led op GPIO8, verwijder dan in `makkis-sms.yaml` de volledige `light:`-sectie én de LED-aansturing (`on_value`-acties) bij `power_delivered` en `power_returned`; die acties verwijzen naar de LED en veroorzaken anders een configuratiefout.
+
 ## 📋 Inhoudsopgave
 
 * [🚀 Belangrijke Features](#-belangrijke-features)
@@ -24,6 +33,12 @@ Een robuuste en zelfvoorzienende ESPHome-firmware voor de **Lolin ESP32-C3 Mini*
 
 ## 🛠️ Hardware & Pinout
 
+### Hardware
+
+De opstelling bestaat uit een **Lolin ESP32-C3 Mini** en het **Makki's SMS v1 P1-shield**. De P1-poort van de slimme meter levert seriële telegrammen; het shield verzorgt de signaalbewerking/inversie voor de UART-ingang van de ESP32. De ESP32 leest de telegrammen uit en publiceert de meetwaarden via ESPHome. De onboard WS2812B-led is aangesloten op GPIO8.
+
+De P1-poort gebruikt een modulaire **6-posities connector (6P6C)**, meestal RJ12 genoemd. Een RJ11-stekker heeft vaak dezelfde breedte en past daardoor vaak in deze aansluiting, maar kan minder contacten hebben. Controleer of de kabel de contacten bevat die jouw meter en shield nodig hebben.
+
 | Component | Pin / Aansluiting | Beschrijving |
 | :--- | :--- | :--- |
 | **Lolin ESP32-C3 Mini** | `GPIO8` | Onboard WS2812B RGB LED (aangestuurd via ESP-IDF RMT) |
@@ -31,7 +46,7 @@ Een robuuste en zelfvoorzienende ESPHome-firmware voor de **Lolin ESP32-C3 Mini*
 | **UART TX** | `GPIO21` | Niet actief gebruikt voor P1, gereserveerd voor busstructuur |
 | **Voeding** | `5V / 3.3V` | Gevoed via het P1-shield of USB-C tijdens programmeren |
 
-*Zie voor het volledige aansluitschema, de BOM (1K en 10K weerstanden) en het Mermaid-diagram de [HARDWARE.md](HARDWARE.md).*
+*Zie voor het volledige aansluitschema, de BOM (1K en 10K weerstanden) en het Mermaid-diagram de [hardware.md](hardware.md).*
 
 ## ⚙️ ESPHome Configuratie
 
@@ -57,10 +72,10 @@ De onboard WS2812B RGB-LED op GPIO8 geeft direct visuele feedback:
    ```bash
    esphome run makkis-sms.yaml
    ```
-3. **P1-kabel Aansluiten**: Plug de RJ11-kabel in het Makki P1-shield. De LED zal direct zacht wit oplichten.
+3. **P1-kabel aansluiten**: Sluit de P1-kabel aan op het Makki P1-shield. De P1-aansluiting is 6P6C (vaak RJ12 genoemd); een RJ11-stekker past vaak, maar kan minder contacten hebben. De LED zal na het opstarten zacht wit oplichten.
 4. **Home Assistant**: Open Home Assistant; de P1-meter verschijnt automatisch bij de Ontdekte Integraties.
 
 ## 📚 Aanvullende Documentatie
 
-* 📖 [**HARDWARE.md**](HARDWARE.md) — Bevat het uitgebreide onderdelenoverzicht (BOM met 1K/10K weerstanden), de stapsgewijze soldeerdocumentatie en het volledige **Mermaid-architectuurdiagram**.
-* 📝 [**CHANGELOG.md**](CHANGELOG.md) — Bekijk alle releasedetails, versie-historie en toegevoegde functionaliteiten per versie.
+* 📖 [**hardware.md**](hardware.md) — Bevat het uitgebreide onderdelenoverzicht (BOM met 1K/10K weerstanden), de stapsgewijze soldeerdocumentatie en het volledige **Mermaid-architectuurdiagram**.
+* 📝 [**changelog.md**](changelog.md) — Bekijk alle releasedetails, versie-historie en toegevoegde functionaliteiten per versie.
