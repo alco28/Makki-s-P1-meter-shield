@@ -1,0 +1,150 @@
+esphome:
+  name: makkis_sms
+  friendly_name: makkis_sms P1 Meter
+
+esp32:
+  board: lolin_c3_mini
+  variant: esp32c3
+
+logger:
+  hardware_uart: USB_CDC
+  level: INFO
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  domain: .lan
+  min_auth_mode: WPA2
+
+web_server:
+  port: 80
+  version: 3
+  local: true
+  include_internal: true  # Nodig om interne/systeem sensoren in de webserver te tonen
+
+# 1. Onboard WS2812B RGB LED op GPIO8
+light:
+  - platform: esp32_rmt_led_strip
+    pin: GPIO8
+    num_leds: 1
+    chipset: WS2812
+    rgb_order: GRB
+    name: "Status LED"
+    id: p1_status_led
+    default_transition_length: 2s
+
+# 2. Seriële communicatie via UART
+uart:
+  id: uart_bus
+  tx_pin: GPIO21
+  rx_pin: GPIO20
+  baud_rate: 115200
+
+# 3. DSMR P1-meter uitlezing
+dsmr:
+  id: dsmr_instance
+  uart_id: uart_bus
+
+# Systeem- en interne sensoren voor de webinterface
+text_sensor:
+  - platform: dsmr
+    identification:
+      name: "DSMR Identificatie"
+    p1_version:
+      name: "DSMR Versie"
+
+  # Interne systeem sensoren (zichtbaar in de webserver door include_internal: true)
+  - platform: wifi_info
+    ip_address:
+      name: "IP-adres"
+      internal: false
+    ssid:
+      name: "Wi-Fi SSID"
+      internal: false
+
+  - platform: version
+    name: "ESPHome Versie"
+    internal: false
+
+sensor:
+  - platform: uptime
+    name: "Uptime"
+    internal: false
+
+  - platform: wifi_signal
+    name: "Wi-Fi Signaalsterkte"
+    id: wifi_signal_db
+    internal: false
+    unit_of_measurement: "dBm"
+    state_class: measurement
+    device_class: signal_strength
+
+  - platform: dsmr
+    energy_delivered_tariff1:
+      name: "Energie Verbruik Totaal (Normaal/Piek)"
+    energy_delivered_tariff2:
+      name: "Energie Verbruik Totaal (Dal)"
+    energy_returned_tariff1:
+      name: "Energie Teruglevering Totaal (Normaal/Piek)"
+    energy_returned_tariff2:
+      name: "Energie Teruglevering Totaal (Dal)"
+
+    # VERBRUIK met smoothing en LED kleurverandering
+    power_delivered:
+      name: "Huidig Vermogen Verbruik"
+      id: p1_power_delivered
+      filters:
+        - exponential_moving_average:
+            alpha: 0.2
+            send_every: 1
+      on_value:
+        then:
+          - lambda: |-
+              float p = x * 1000.0; 
+              auto call = id(p1_status_led).turn_on();
+              
+              if (p > 10.0) {
+                float ratio = std::min(1.0f, p / 8000.0f);
+                call.set_brightness(0.5);
+                call.set_red(1.0f);
+                call.set_green(0.6f * (1.0f - ratio));
+                call.set_blue(0.0f);
+              } else {
+                call.set_brightness(0.1);
+                call.set_red(0.2f); call.set_green(0.2f); call.set_blue(0.2f);
+              }
+              call.perform();
+
+    # TERUGLEVERING met smoothing en LED kleurverandering
+    power_returned:
+      name: "Huidig Vermogen Teruglevering"
+      id: p1_power_returned
+      filters:
+        - exponential_moving_average:
+            alpha: 0.2
+            send_every: 1
+      on_value:
+        then:
+          - lambda: |-
+              float p = x * 1000.0; 
+              auto call = id(p1_status_led).turn_on();
+              
+              if (p > 10.0) {
+                float ratio = std::min(1.0f, p / 3680.0f);
+                call.set_brightness(0.5);
+                call.set_red(0.0f);
+                call.set_green(1.0f * (1.0f - ratio));
+                call.set_blue(1.0f * ratio);
+              } else {
+                call.set_brightness(0.1);
+                call.set_red(0.2f); call.set_green(0.2f); call.set_blue(0.2f);
+              }
+              call.perform();
+
+    voltage_l1:
+      name: "Spanning L1"
+    current_l1:
+      name: "Stroom L1"
