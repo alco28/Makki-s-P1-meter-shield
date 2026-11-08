@@ -25,7 +25,7 @@ web_server:
   local: true
   include_internal: true  # Nodig om interne/systeem sensoren in de webserver te tonen
 
-# 1. Onboard WS2812B RGB LED op GPIO8
+# Onboard WS2812B RGB LED op GPIO8
 light:
   - platform: esp32_rmt_led_strip
     pin: GPIO8
@@ -36,19 +36,50 @@ light:
     id: p1_status_led
     default_transition_length: 2s
 
-# 2. Seriële communicatie via UART
+# Kies de LED-kleur op basis van het nettovermogen uit beide DSMR-sensoren.
+script:
+  - id: update_status_led
+    then:
+      - lambda: |-
+          const float net_power =
+              (id(p1_power_delivered).state - id(p1_power_returned).state) * 1000.0f;
+          auto call = id(p1_status_led).turn_on();
+
+          if (net_power > 10.0f) {
+            float ratio = net_power / 8000.0f;
+            if (ratio > 1.0f) ratio = 1.0f;
+            call.set_brightness(0.5f);
+            call.set_red(1.0f);
+            call.set_green(0.6f * (1.0f - ratio));
+            call.set_blue(0.0f);
+          } else if (net_power < -10.0f) {
+            float ratio = -net_power / 3680.0f;
+            if (ratio > 1.0f) ratio = 1.0f;
+            call.set_brightness(0.5f);
+            call.set_red(0.0f);
+            call.set_green(1.0f - ratio);
+            call.set_blue(ratio);
+          } else {
+            call.set_brightness(0.1f);
+            call.set_red(0.2f);
+            call.set_green(0.2f);
+            call.set_blue(0.2f);
+          }
+          call.perform();
+
+# Seriële communicatie via UART
 uart:
   id: uart_bus
   tx_pin: GPIO21
   rx_pin: GPIO20
   baud_rate: 115200
 
-# 3. DSMR P1-meter uitlezing
+# DSMR P1-meter uitlezing
 dsmr:
   id: dsmr_instance
   uart_id: uart_bus
 
-# Systeem- en interne sensoren voor de webinterface
+# DSMR-identificatie en systeeminformatie voor de webinterface
 text_sensor:
   - platform: dsmr
     identification:
@@ -92,7 +123,7 @@ sensor:
     energy_returned_tariff2:
       name: "Energie Teruglevering Totaal (Dal)"
 
-    # VERBRUIK met smoothing en LED kleurverandering
+    # Verbruik gladstrijken en de LED bijwerken op basis van nettovermogen.
     power_delivered:
       name: "Huidig Vermogen Verbruik"
       id: p1_power_delivered
@@ -102,23 +133,9 @@ sensor:
             send_every: 1
       on_value:
         then:
-          - lambda: |-
-              float p = x * 1000.0; 
-              auto call = id(p1_status_led).turn_on();
-              
-              if (p > 10.0) {
-                float ratio = std::min(1.0f, p / 8000.0f);
-                call.set_brightness(0.5);
-                call.set_red(1.0f);
-                call.set_green(0.6f * (1.0f - ratio));
-                call.set_blue(0.0f);
-              } else {
-                call.set_brightness(0.1);
-                call.set_red(0.2f); call.set_green(0.2f); call.set_blue(0.2f);
-              }
-              call.perform();
+          - script.execute: update_status_led
 
-    # TERUGLEVERING met smoothing en LED kleurverandering
+    # Teruglevering gladstrijken en de LED bijwerken op basis van nettovermogen.
     power_returned:
       name: "Huidig Vermogen Teruglevering"
       id: p1_power_returned
@@ -128,21 +145,7 @@ sensor:
             send_every: 1
       on_value:
         then:
-          - lambda: |-
-              float p = x * 1000.0; 
-              auto call = id(p1_status_led).turn_on();
-              
-              if (p > 10.0) {
-                float ratio = std::min(1.0f, p / 3680.0f);
-                call.set_brightness(0.5);
-                call.set_red(0.0f);
-                call.set_green(1.0f * (1.0f - ratio));
-                call.set_blue(1.0f * ratio);
-              } else {
-                call.set_brightness(0.1);
-                call.set_red(0.2f); call.set_green(0.2f); call.set_blue(0.2f);
-              }
-              call.perform();
+          - script.execute: update_status_led
 
     voltage_l1:
       name: "Spanning L1"
